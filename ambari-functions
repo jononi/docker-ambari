@@ -107,6 +107,9 @@ amb-deploy-cluster() {
   fi
 
   : ${BLUEPRINT:?" required (single-node-hdfs-yarn / multi-node-hdfs-yarn / hdp-singlenode-default / hdp-multinode-default)"}
+  
+  echo blueprint to be used: $BLUEPRINT
+  echo number of nodes to be installed: $act_cluster_size
 
   amb-start-cluster $act_cluster_size
   _amb_run_shell /tmp/install-cluster.sh
