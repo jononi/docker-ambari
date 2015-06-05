@@ -1,35 +1,34 @@
 :<<USAGE
 ########################################
-curl -Lo .amb j.mp/docker-ambari && . .amb
+curl -Lo .amb https://raw.githubusercontent.com/jononi/docker-ambari/master/ambari-functions && . .amb
 ########################################
 
 full documentation: https://github.com/sequenceiq/docker-ambari
 USAGE
 
 : ${NODE_PREFIX=amb}
-#: ${AMBARI_SERVER_NAME:=${NODE_PREFIX}0}
-: ${AMBARI_SERVER_NAME:=ambserver}
-: ${MYDOMAIN:=jmcs.com}
-: ${IMAGE:="sequenceiq/ambari:2.0.0"} 
-: ${KEYCHAIN:="jaafer.benabdallah@gmail.com"}
+: ${AMBARI_SERVER_NAME:=${NODE_PREFIX}0}
+: ${MYDOMAIN:=mycorp.kom}
+: ${IMAGE:="sequenceiq/ambari:2.0.0"}
+: ${KEYCHAIN=jaafer.benabdallah@gmail.com}
 : ${DOCKER_OPTS:="--dns 127.0.0.1 --entrypoint /usr/local/serf/bin/start-serf-agent.sh -e KEYCHAIN=$KEYCHAIN"}
-: ${CLUSTER_SIZE:=6}
+: ${CLUSTER_SIZE:=5}
 : ${DEBUG:=1}
 : ${SLEEP_TIME:=2}
 : ${DRY_RUN:=false}
 
 run-command() {
   CMD="$@"
-  if [ "$DRY_RUN" == "false" ]; then
+  if [[ "$DRY_RUN" = "false" ]]; then
     debug "$CMD"
     "$@"
   else
-    debug [DRY_RUN] "$CMD"
+    debug "[DRY_RUN]" "$CMD"
   fi
 }
 
 amb-clean() {
-  unset NODE_PREFIX AMBARI_SERVER_NAME MYDOMAIN IMAGE DOCKER_OPTS DEBUG SLEEP_TIME AMBARI_SERVER_IP DRY_RUN CLUSTER_SIZE
+  unset NODE_PREFIX AMBARI_SERVER_NAME MYDOMAIN IMAGE DOCKER_OPTS DEBUG SLEEP_TIME AMBARI_SERVER_IP DRY_RUN
 }
 
 get-ambari-server-ip() {
@@ -60,7 +59,7 @@ EOF
 }
 
 debug() {
-  [ $DEBUG -gt 0 ] && echo [DEBUG] "$@" 1>&2
+  [[ $DEBUG -gt 0 ]] && echo -e "[DEBUG]" "$@" 1>&2
 }
 
 docker-ps() {
@@ -78,8 +77,8 @@ amb-start-cluster() {
   : ${act_cluster_size:=$CLUSTER_SIZE}
   echo starting an ambari cluster with: $act_cluster_size nodes
 
-  amb-start-first  
-  [ $act_cluster_size -gt 1 ] && for i in $(seq $((act_cluster_size - 1))); do
+  amb-start-first
+  [[ $act_cluster_size -gt 1 ]] && for i in $(seq $((act_cluster_size - 1))); do
     amb-start-node $i
   done
 }
@@ -96,7 +95,7 @@ amb-shell() {
   _amb_run_shell /tmp/ambari-shell.sh
 }
 
-amb-deploy-cluster() {                                                                              
+amb-deploy-cluster() {
   local act_cluster_size=$1
   : ${act_cluster_size:=$CLUSTER_SIZE}
 
@@ -108,8 +107,6 @@ amb-deploy-cluster() {
 
   : ${BLUEPRINT:?" required (single-node-hdfs-yarn / multi-node-hdfs-yarn / hdp-singlenode-default / hdp-multinode-default)"}
 
-  echo blueprint used $BLUEPRINT
-  echo number of nodes $act_cluster_size
   amb-start-cluster $act_cluster_size
   _amb_run_shell /tmp/install-cluster.sh
 }
@@ -146,7 +143,7 @@ amb-start-node() {
   get-ambari-server-ip
   : ${AMBARI_SERVER_IP:?"AMBARI_SERVER_IP is needed"}
   NUMBER=${1:?"please give a <NUMBER> parameter it will be used as node<NUMBER>"}
-  if [ $# -eq 1 ] ;then
+  if [[ $# -eq 1 ]] ;then
     MORE_OPTIONS="-d"
   else
     shift
