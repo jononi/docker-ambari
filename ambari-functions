@@ -8,7 +8,7 @@ USAGE
 
 : ${NODE_PREFIX=amb}
 : ${AMBARI_SERVER_NAME:=${NODE_PREFIX}0}
-: ${MYDOMAIN:=mycorp.kom}
+: ${MYDOMAIN:=jmcs.com}
 : ${IMAGE:="sequenceiq/ambari:2.0.0"}
 : ${KEYCHAIN=jaafer.benabdallah@gmail.com}
 : ${DOCKER_OPTS:="-P --dns 127.0.0.1 --entrypoint /usr/local/serf/bin/start-serf-agent.sh -e KEYCHAIN=$KEYCHAIN"}
