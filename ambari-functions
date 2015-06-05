@@ -11,8 +11,8 @@ USAGE
 : ${MYDOMAIN:=mycorp.kom}
 : ${IMAGE:="sequenceiq/ambari:2.0.0"}
 : ${KEYCHAIN=jaafer.benabdallah@gmail.com}
-: ${DOCKER_OPTS:="--dns 127.0.0.1 --entrypoint /usr/local/serf/bin/start-serf-agent.sh -e KEYCHAIN=$KEYCHAIN"}
-: ${CLUSTER_SIZE:=5}
+: ${DOCKER_OPTS:="-P --dns 127.0.0.1 --entrypoint /usr/local/serf/bin/start-serf-agent.sh -e KEYCHAIN=$KEYCHAIN"}
+: ${CLUSTER_SIZE:=3}
 : ${DEBUG:=1}
 : ${SLEEP_TIME:=2}
 : ${DRY_RUN:=false}
@@ -112,7 +112,7 @@ amb-deploy-cluster() {
 }
 
 amb-start-first() {
-  run-command docker run -d -P $DOCKER_OPTS --name $AMBARI_SERVER_NAME -h $AMBARI_SERVER_NAME.$MYDOMAIN $IMAGE --tag ambari-server=true
+  run-command docker run -d $DOCKER_OPTS --name $AMBARI_SERVER_NAME -h $AMBARI_SERVER_NAME.$MYDOMAIN $IMAGE --tag ambari-server=true
 }
 
 amb-copy-to-hdfs() {
