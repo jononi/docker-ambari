@@ -2,6 +2,7 @@
 ########################################
 curl -Lo .amb https://raw.githubusercontent.com/jononi/docker-ambari/master/ambari-functions && . .amb
 ########################################
+
 full documentation: https://github.com/sequenceiq/docker-ambari
 USAGE
 
@@ -16,35 +17,35 @@ USAGE
 : ${SLEEP_TIME:=2}
 : ${DRY_RUN:=false}
 
-run_command() {
+run-command() {
   CMD="$@"
-  if [[ "$DRY_RUN" = "false" ]]; then
+  if [ "$DRY_RUN" == "false" ]; then
     debug "$CMD"
     "$@"
   else
-    debug "[DRY_RUN]" "$CMD"
+    debug [DRY_RUN] "$CMD"
   fi
 }
 
-amb_clean() {
+amb-clean() {
   unset NODE_PREFIX AMBARI_SERVER_NAME MYDOMAIN IMAGE DOCKER_OPTS DEBUG SLEEP_TIME AMBARI_SERVER_IP DRY_RUN
 }
 
-get_ambari_server_ip() {
-  AMBARI_SERVER_IP=$(get_host_ip ${AMBARI_SERVER_NAME})
+get-ambari-server-ip() {
+  AMBARI_SERVER_IP=$(get-host-ip ${AMBARI_SERVER_NAME})
 }
 
-get_host_ip() {
+get-host-ip() {
   HOST=$1
   docker inspect --format="{{.NetworkSettings.IPAddress}}" ${HOST}
 }
 
-amb_members() {
-  get_ambari_server_ip
+amb-members() {
+  get-ambari-server-ip
   serf members --rpc-addr $(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${AMBARI_SERVER_NAME}):7373
 }
 
-amb_settings() {
+amb-settings() {
   cat <<EOF
   NODE_PREFIX=$NODE_PREFIX
   MYDOMAIN=$MYDOMAIN
@@ -58,43 +59,43 @@ EOF
 }
 
 debug() {
-  [[ $DEBUG -gt 0 ]] && echo -e "[DEBUG]" "$@" 1>&2
+  [ $DEBUG -gt 0 ] && echo [DEBUG] "$@" 1>&2
 }
 
-docker_ps() {
+docker-ps() {
   #docker ps|sed "s/ \{3,\}/#/g"|cut -d '#' -f 1,2,7|sed "s/#/\t/g"
   docker inspect --format="{{.Name}} {{.NetworkSettings.IPAddress}} {{.Config.Image}} {{.Config.Entrypoint}} {{.Config.Cmd}}" $(docker ps -q)
 }
 
-docker_psa() {
+docker-psa() {
   #docker ps|sed "s/ \{3,\}/#/g"|cut -d '#' -f 1,2,7|sed "s/#/\t/g"
   docker inspect --format="{{.Name}} {{.NetworkSettings.IPAddress}} {{.Config.Image}} {{.Config.Entrypoint}} {{.Config.Cmd}}" $(docker ps -qa)
 }
 
-amb_start_cluster() {
+amb-start-cluster() {
   local act_cluster_size=$1
   : ${act_cluster_size:=$CLUSTER_SIZE}
   echo starting an ambari cluster with: $act_cluster_size nodes
 
-  amb_start_first
-  [[ $act_cluster_size -gt 1 ]] && for i in $(seq $((act_cluster_size - 1))); do
-    amb_start_node $i
+  amb-start-first
+  [ $act_cluster_size -gt 1 ] && for i in $(seq $((act_cluster_size - 1))); do
+    amb-start-node $i
   done
 }
 
 _amb_run_shell() {
   COMMAND=$1
   : ${COMMAND:? required}
-  get_ambari_server_ip
+  get-ambari-server-ip
   NODES=$(docker inspect --format="{{.Config.Image}} {{.Name}}" $(docker ps -q)|grep $IMAGE|grep $NODE_PREFIX|wc -l|xargs)
-  run_command docker run -it --rm -e EXPECTED_HOST_COUNT=$NODES -e BLUEPRINT=$BLUEPRINT --link ${AMBARI_SERVER_NAME}:ambariserver --entrypoint /bin/sh $IMAGE -c $COMMAND
+  run-command docker run -it --rm -e EXPECTED_HOST_COUNT=$NODES -e BLUEPRINT=$BLUEPRINT --link ${AMBARI_SERVER_NAME}:ambariserver --entrypoint /bin/sh $IMAGE -c $COMMAND
 }
 
-amb_shell() {
+amb-shell() {
   _amb_run_shell /tmp/ambari-shell.sh
 }
 
-amb_deploy_cluster() {
+amb-deploy-cluster() {
   local act_cluster_size=$1
   : ${act_cluster_size:=$CLUSTER_SIZE}
 
@@ -106,47 +107,47 @@ amb_deploy_cluster() {
 
   : ${BLUEPRINT:?" required (single-node-hdfs-yarn / multi-node-hdfs-yarn / hdp-singlenode-default / hdp-multinode-default)"}
 
-  amb_start_cluster $act_cluster_size
+  amb-start-cluster $act_cluster_size
   _amb_run_shell /tmp/install-cluster.sh
 }
 
-amb_start_first() {
-  run_command docker run -d -P $DOCKER_OPTS -p 8080 --name $AMBARI_SERVER_NAME -h $AMBARI_SERVER_NAME.$MYDOMAIN $IMAGE --tag ambari-server=true
+amb-start-first() {
+  run-command docker run -d $DOCKER_OPTS --name $AMBARI_SERVER_NAME -h $AMBARI_SERVER_NAME.$MYDOMAIN $IMAGE --tag ambari-server=true
 }
 
-amb_copy_to_hdfs() {
-  get_ambari_server_ip
+amb-copy-to-hdfs() {
+  get-ambari-server-ip
   FILE_PATH=${1:?"usage: <FILE_PATH> <NEW_FILE_NAME_ON_HDFS> <HDFS_PATH>"}
   FILE_NAME=${2:?"usage: <FILE_PATH> <NEW_FILE_NAME_ON_HDFS> <HDFS_PATH>"}
   DIR=${3:?"usage: <FILE_PATH> <NEW_FILE_NAME_ON_HDFS> <HDFS_PATH>"}
-  amb_create_hdfs_dir $DIR
+  amb-create-hdfs-dir $DIR
   DATANODE=$(curl -si -X PUT "http://$AMBARI_SERVER_IP:50070/webhdfs/v1$DIR/$FILE_NAME?user.name=hdfs&op=CREATE" |grep Location | sed "s/\..*//; s@.*http://@@")
-  DATANODE_IP=$(get_host_ip $DATANODE)
+  DATANODE_IP=$(get-host-ip $DATANODE)
   curl -T $FILE_PATH "http://$DATANODE_IP:50075/webhdfs/v1$DIR/$FILE_NAME?op=CREATE&user.name=hdfs&overwrite=true&namenoderpcaddress=$AMBARI_SERVER_IP:8020"
 }
 
-amb_create_hdfs_dir() {
-  get_ambari_server_ip
+amb-create-hdfs-dir() {
+  get-ambari-server-ip
   DIR=$1
   curl -X PUT "http://$AMBARI_SERVER_IP:50070/webhdfs/v1$DIR?user.name=hdfs&op=MKDIRS" > /dev/null 2>&1
 }
 
-amb_scp_to_first() {
-  get_ambari_server_ip
+amb-scp-to-first() {
+  get-ambari-server-ip
   FILE_PATH=${1:?"usage: <FILE_PATH> <DESTINATION_PATH>"}
   DEST_PATH=${2:?"usage: <FILE_PATH> <DESTINATION_PATH>"}
   scp $FILE_PATH root@$AMBARI_SERVER_IP:$DEST_PATH
 }
 
-amb_start_node() {
-  get_ambari_server_ip
+amb-start-node() {
+  get-ambari-server-ip
   : ${AMBARI_SERVER_IP:?"AMBARI_SERVER_IP is needed"}
   NUMBER=${1:?"please give a <NUMBER> parameter it will be used as node<NUMBER>"}
-  if [[ $# -eq 1 ]] ;then
+  if [ $# -eq 1 ] ;then
     MORE_OPTIONS="-d"
   else
     shift
     MORE_OPTIONS="$@"
   fi
-  run_command docker run $MORE_OPTIONS -e SERF_JOIN_IP=$AMBARI_SERVER_IP $DOCKER_OPTS --name ${NODE_PREFIX}$NUMBER -h ${NODE_PREFIX}${NUMBER}.$MYDOMAIN $IMAGE --log-level debug
+  run-command docker run $MORE_OPTIONS -e SERF_JOIN_IP=$AMBARI_SERVER_IP $DOCKER_OPTS --name ${NODE_PREFIX}$NUMBER -h ${NODE_PREFIX}${NUMBER}.$MYDOMAIN $IMAGE --log-level debug
 }
